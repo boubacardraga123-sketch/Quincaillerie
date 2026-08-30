@@ -18,6 +18,7 @@
     "appId": "com.diallo.quincaillerie",
     "productName": "Quincaillerie Diallo",
     "asar": true,
+    "publish": null,
     "files": [
       "main.js",
       "app/**/*"
