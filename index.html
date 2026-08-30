@@ -6,19 +6,19 @@
 <title>ETS. DIALLO AMADOU OURY — Gestion Stock & Factures</title>
 <style>
   :root{
-    --bg:#f0f4f8;
-    --panel:#ffffff;
-    --panel-2:#eef2f7;
-    --line:#d0dce8;
-    --text:#1a2533;
-    --text-dim:#5a6b7e;
+    --bg:#000000;
+    --panel:#141414;
+    --panel-2:#1e1e1e;
+    --line:#333333;
+    --text:#f0f0f0;
+    --text-dim:#9aa3ad;
     --accent:#e8a23d;
-    --accent-dim:#b8791a;
-    --danger:#c0392b;
-    --danger-bg:#fbe4df;
-    --success:#2e7d52;
-    --success-bg:#e4f3ea;
-    --ink:#3e6fa8;
+    --accent-dim:#c68a30;
+    --danger:#e5675a;
+    --danger-bg:#3a1f1c;
+    --success:#4caf7d;
+    --success-bg:#1c3327;
+    --ink:#6fa3e0;
     --radius:10px;
     --font-display:"Segoe UI","Helvetica Neue",Arial,sans-serif;
     --font-body:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
@@ -439,7 +439,7 @@ function defaultApp(){
       utilisateurActif:"",
       seuilDetteJours:30,
       motDePasse:"bhds123",
-      theme:{ bg:"#f0f4f8", panel:"#ffffff", panel2:"#eef2f7", accent:"#e8a23d", text:"#1a2533" }
+      theme:{ bg:"#000000", panel:"#141414", panel2:"#1e1e1e", accent:"#e8a23d", text:"#f0f0f0" }
     },
     nextNumero:1
   };
@@ -458,7 +458,7 @@ function load(){
     if(APP.settings.seuilDetteJours==null) APP.settings.seuilDetteJours=30;
     if(APP.settings.utilisateurActif==null) APP.settings.utilisateurActif="";
     if(!APP.settings.motDePasse) APP.settings.motDePasse="bhds123";
-    if(!APP.settings.theme) APP.settings.theme={ bg:"#f0f4f8", panel:"#ffffff", panel2:"#eef2f7", accent:"#e8a23d", text:"#1a2533" };
+    if(!APP.settings.theme) APP.settings.theme={ bg:"#000000", panel:"#141414", panel2:"#1e1e1e", accent:"#e8a23d", text:"#f0f0f0" };
     if(!APP.nextNumero) APP.nextNumero=1;
     if(!APP.shop) APP.shop = defaultApp().shop;
     // migration : s'assurer que chaque facture a un tableau de paiements et un reste à jour
@@ -482,11 +482,11 @@ function save(){
 function applyTheme(){
   var t = (APP.settings && APP.settings.theme) || {};
   var root = document.documentElement.style;
-  root.setProperty("--bg", t.bg || "#f0f4f8");
-  root.setProperty("--panel", t.panel || "#ffffff");
-  root.setProperty("--panel-2", t.panel2 || "#eef2f7");
+  root.setProperty("--bg", t.bg || "#000000");
+  root.setProperty("--panel", t.panel || "#141414");
+  root.setProperty("--panel-2", t.panel2 || "#1e1e1e");
   root.setProperty("--accent", t.accent || "#e8a23d");
-  root.setProperty("--text", t.text || "#1a2533");
+  root.setProperty("--text", t.text || "#f0f0f0");
 }
 function factureReste(f){
   var paye = (Number(f.avance)||0) + (f.paiements||[]).reduce(function(s,p){ return s+(Number(p.montant)||0); },0);
@@ -1131,7 +1131,7 @@ function viewClientDetail(all){
 /* ============ PARAMÈTRES ============ */
 function viewParametres(){
   var s = APP.shop;
-  var theme = (APP.settings && APP.settings.theme) || { bg:"#f0f4f8", panel:"#ffffff", panel2:"#eef2f7", accent:"#e8a23d", text:"#1a2533" };
+  var theme = (APP.settings && APP.settings.theme) || { bg:"#000000", panel:"#141414", panel2:"#1e1e1e", accent:"#e8a23d", text:"#f0f0f0" };
   return ''+
   '<div class="card">'+
     '<h2>Informations de la quincaillerie</h2>'+
@@ -1800,7 +1800,7 @@ function attachHandlers(){
   });
   var btnResetTheme = document.getElementById("btnResetTheme");
   if(btnResetTheme) btnResetTheme.addEventListener("click", function(){
-    APP.settings.theme = { bg:"#f0f4f8", panel:"#ffffff", panel2:"#eef2f7", accent:"#e8a23d", text:"#1a2533" };
+    APP.settings.theme = { bg:"#000000", panel:"#141414", panel2:"#1e1e1e", accent:"#e8a23d", text:"#f0f0f0" };
     applyTheme();
     save(); render();
   });
