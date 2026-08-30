@@ -1,5 +1,45 @@
 const { app, BrowserWindow, Menu, dialog } = require("electron");
 const path = require("path");
+const fs = require("fs");
+
+function listerDossier(dossier, profondeur){
+  profondeur = profondeur || 0;
+  var lignes = [];
+  var prefixe = "  ".repeat(profondeur);
+  var entrees;
+  try{ entrees = fs.readdirSync(dossier, { withFileTypes: true }); }
+  catch(e){ return [prefixe + "(impossible de lire ce dossier: " + e.message + ")"]; }
+  entrees.forEach(function(entree){
+    lignes.push(prefixe + (entree.isDirectory() ? "[dossier] " : "") + entree.name);
+    if(entree.isDirectory() && profondeur < 2){
+      lignes = lignes.concat(listerDossier(path.join(dossier, entree.name), profondeur+1));
+    }
+  });
+  return lignes;
+}
+
+function trouverIndexHtml(dossierDepart){
+  var trouve = null;
+  function parcourir(dossier, profondeur){
+    if(trouve || profondeur > 4) return;
+    var entrees;
+    try{ entrees = fs.readdirSync(dossier, { withFileTypes: true }); }
+    catch(e){ return; }
+    for(var i=0; i<entrees.length; i++){
+      if(trouve) return;
+      var entree = entrees[i];
+      var chemin = path.join(dossier, entree.name);
+      if(entree.isDirectory()){
+        parcourir(chemin, profondeur+1);
+      } else if(entree.name.toLowerCase()==="index.html"){
+        trouve = chemin;
+        return;
+      }
+    }
+  }
+  parcourir(dossierDepart, 0);
+  return trouve;
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -14,20 +54,23 @@ function createWindow() {
     }
   });
 
-  // Masque la barre de menu (Fichier/Édition/Affichage...) pour une
-  // apparence plus proche d'un vrai logiciel.
   Menu.setApplicationMenu(null);
 
   var indexPath = path.join(__dirname, "app", "index.html");
+  if(!fs.existsSync(indexPath)){
+    var trouve = trouverIndexHtml(__dirname);
+    if(trouve) indexPath = trouve;
+  }
   win.loadFile(indexPath);
 
-  // Filet de sécurité : si la page ne se charge pas, on l'affiche à
-  // l'écran (au lieu d'un écran blanc silencieux) pour comprendre pourquoi.
   win.webContents.on("did-fail-load", function(event, errorCode, errorDescription){
+    var contenu = listerDossier(__dirname).join("\n");
     dialog.showErrorBox(
       "Erreur de chargement",
-      "Impossible de charger l'application.\nChemin: " + indexPath +
-      "\nCode: " + errorCode + " — " + errorDescription
+      "Impossible de charger l'application.\n" +
+      "Chemin attendu: " + indexPath + "\n" +
+      "Code: " + errorCode + " — " + errorDescription + "\n\n" +
+      "Contenu réellement trouvé dans:\n" + __dirname + "\n" + contenu
     );
   });
 
@@ -38,8 +81,6 @@ function createWindow() {
     );
   });
 
-  // Décommenter la ligne suivante pour ouvrir les outils de développement
-  // (utile pour déboguer, à ne pas garder dans la version livrée aux clients) :
   // win.webContents.openDevTools();
 }
 
