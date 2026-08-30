@@ -21,7 +21,7 @@
     "publish": null,
     "files": [
       "main.js",
-      "app/**/*"
+      "app"
     ],
     "directories": {
       "output": "dist"
