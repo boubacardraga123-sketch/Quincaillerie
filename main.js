@@ -56,7 +56,7 @@ function createWindow() {
 
   Menu.setApplicationMenu(null);
 
-  var indexPath = path.join(__dirname, "app", "index.html");
+  var indexPath = path.join(__dirname, "index.html");
   if(!fs.existsSync(indexPath)){
     var trouve = trouverIndexHtml(__dirname);
     if(trouve) indexPath = trouve;
