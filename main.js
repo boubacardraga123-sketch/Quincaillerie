@@ -1,33 +1,34 @@
-
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu } = require("electron");
+const path = require("path");
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1280,
+    width: 1200,
     height: 800,
     minWidth: 900,
-    minHeight: 600,
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
+    minHeight: 650,
     autoHideMenuBar: true,
-    backgroundColor: '#f0f4f8',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
   });
 
+  // Pas de menu Electron par défaut (Fichier / Edition / Affichage...) :
+  // l'application a déjà sa propre navigation par onglets.
   Menu.setApplicationMenu(null);
 
-  win.loadFile('index.html');
+  win.loadFile(path.join(__dirname, "app", "quincaillerie-diallo.html"));
 }
 
 app.whenReady().then(() => {
   createWindow();
 
-  app.on('activate', () => {
+  app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
 });
