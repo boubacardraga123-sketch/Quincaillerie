@@ -1,43 +1,34 @@
 {
   "name": "quincaillerie-diallo",
   "version": "1.0.0",
-  "description": "ETS. DIALLO AMADOU OURY — Gestion Stock & Factures",
+  "description": "Gestion des factures - ETS. DIALLO AMADOU OURY",
   "main": "main.js",
   "author": "ETS. DIALLO AMADOU OURY",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win --publish never"
+    "build": "electron-builder --win"
   },
   "devDependencies": {
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "gn.diallo.quincaillerie",
-    "productName": "Quincaillerie Diallo",
+    "appId": "com.diallo.quincaillerie",
+    "productName": "Gestion Factures DIALLO",
     "files": [
-      "index.html",
-      "main.js"
+      "main.js",
+      "app/**/*"
     ],
-    "directories": {
-      "output": "release"
-    },
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        }
-      ]
+      "target": "nsis"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Quincaillerie Diallo"
+      "shortcutName": "Gestion Factures DIALLO"
     }
   }
 }
