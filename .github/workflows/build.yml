@@ -1,13 +1,10 @@
-name: Build Windows Installer
+name: Build Windows App
 
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch: {}
-
-permissions:
-  contents: write
+      - "v*"
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,20 +19,20 @@ jobs:
           node-version: 20
 
       - name: Installer les dépendances
-        run: npm install
+        run: npm ci
 
-      - name: Construire l'installeur Windows
-        run: npm run dist
+      - name: Construire l'installateur Windows
+        run: npm run build
 
-      - name: Publier l'installeur
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: release/*.exe
-
-      - name: Sauvegarder l'installeur (artifact)
+      - name: Publier en tant qu'artéfact de build
         uses: actions/upload-artifact@v4
         with:
-          name: installeur-windows
-          path: release/*.exe
+          name: installateur-windows
+          path: dist/*.exe
+
+      - name: Publier en Release GitHub (si tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe
 
