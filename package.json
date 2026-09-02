@@ -1,34 +1,48 @@
 {
   "name": "quincaillerie-diallo",
   "version": "1.0.0",
-  "description": "Gestion des factures - ETS. DIALLO AMADOU OURY",
+  "description": "ETS. DIALLO AMADOU OURY — Gestion Stock & Factures",
   "main": "main.js",
-  "author": "ETS. DIALLO AMADOU OURY",
+  "author": "Boubacar Diallo",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win --publish never"
+    "build": "electron-builder --win",
+    "build:all": "electron-builder -mwl"
   },
   "devDependencies": {
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.diallo.quincaillerie",
-    "productName": "Gestion Factures DIALLO",
+    "appId": "com.etsdialloamadououry.quincaillerie",
+    "productName": "Quincaillerie Diallo",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
     "files": [
       "main.js",
-      "app/**/*"
+      "preload.js",
+      "app/**/*",
+      "build/**/*"
     ],
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Gestion Factures DIALLO"
+      "createStartMenuShortcut": true,
+      "shortcutName": "Quincaillerie Diallo"
     }
   }
 }
