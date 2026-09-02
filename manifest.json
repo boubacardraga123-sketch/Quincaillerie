@@ -2,7 +2,7 @@
   "name": "ETS. DIALLO AMADOU OURY — Gestion Stock & Factures",
   "short_name": "Quincaillerie Diallo",
   "description": "Gestion de stock, ventes et factures — ETS. DIALLO AMADOU OURY",
-  "start_url": "./quincaillerie-diallo.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -30,3 +30,4 @@
     }
   ]
 }
+
