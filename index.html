@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>ETS. DIALLO AMADOU OURY — Gestion Stock & Factures</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a3a5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Quincaillerie Diallo">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png" type="image/png">
 <style>
   :root{
     --bg:#f0f4f8;
@@ -385,7 +392,8 @@
       <h1 class="shopname" id="hdrShopName">ETS. DIALLO AMADOU OURY</h1>
       <div class="shopsub" id="hdrShopSub">Gestion de stock & factures</div>
     </div>
-    <button class="btn small ghost noprint" id="btnLogout" style="margin-left:auto;">Déconnexion</button>
+    <button class="btn small ghost noprint" id="btnInstallApp" style="margin-left:auto;display:none;">📲 Installer l'app</button>
+    <button class="btn small ghost noprint" id="btnLogout">Déconnexion</button>
   </div>
   <nav class="tabs" id="tabs"></nav>
   <div class="syncbar noprint" id="syncBar"><span class="dot" id="syncDot"></span><span id="syncText">Connexion…</span></div>
@@ -2025,6 +2033,40 @@ if(isAuthenticated()){
   showLogin();
 }
 initFirebaseSync();
+
+/* ============ INSTALLATION PWA (Ajouter à l'écran d'accueil) ============ */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(e){
+      console.warn("Service worker non enregistré:", e);
+    });
+  });
+}
+
+var deferredInstallPrompt = null;
+var btnInstall = document.getElementById("btnInstallApp");
+
+window.addEventListener("beforeinstallprompt", function(e){
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if(btnInstall) btnInstall.style.display = "";
+});
+
+if(btnInstall){
+  btnInstall.addEventListener("click", function(){
+    if(!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(function(){
+      deferredInstallPrompt = null;
+      btnInstall.style.display = "none";
+    });
+  });
+}
+
+window.addEventListener("appinstalled", function(){
+  if(btnInstall) btnInstall.style.display = "none";
+  deferredInstallPrompt = null;
+});
 
 })();
 </script>
