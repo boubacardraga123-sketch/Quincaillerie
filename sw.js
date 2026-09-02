@@ -1,6 +1,6 @@
 const CACHE_NAME = "quinc-diallo-cache-v1";
 const CORE_ASSETS = [
-  "./quincaillerie-diallo.html",
+  "./index.html",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png"
@@ -44,3 +44,4 @@ self.addEventListener("fetch", (event) => {
       .catch(() => caches.match(event.request))
   );
 });
+
