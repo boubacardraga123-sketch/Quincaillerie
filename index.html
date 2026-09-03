@@ -454,11 +454,22 @@ var firebaseConfig = {
   appId: "1:598024734345:web:3b81771cc4d2f795492858"
 };
 var db = null;
-var cloudDocRef = null;
-var cloudReady = false;        // true dès que le premier snapshot (local ou serveur) est arrivé
+var cloudReady = false;        // true dès que toutes les collections ont reçu leur premier instantané
 var applyingRemote = false;    // évite de renvoyer vers le cloud ce qu'on vient de recevoir du cloud
 var cloudPushTimer = null;
-var lastLocalUpdate = 0;
+
+// Chaque type de donnée a désormais SA PROPRE collection Firestore (un document par facture,
+// par client, etc.) au lieu d'un seul gros document — ça supprime la limite de 1 Mo/document
+// et permet de synchroniser énormément de factures/clients/produits sans problème.
+var COL = {
+  produits: "quinc_produits",
+  clients: "quinc_clients",
+  factures: "quinc_factures",
+  mouvements: "quinc_mouvements",
+  achats: "quinc_achats"
+};
+var metaDocRef = null; // petit document séparé pour shop / settings / nextNumero
+var syncedJSON = { produits:{}, clients:{}, factures:{}, mouvements:{}, achats:{} }; // id -> dernier JSON envoyé (pour ne pousser que ce qui a changé)
 
 function setSyncUI(mode, text){
   var dot = document.getElementById("syncDot");
@@ -475,42 +486,78 @@ function initFirebaseSync(){
     try{
       db.enablePersistence({synchronizeTabs:true});
     }catch(e){ /* déjà activé ou navigateur non compatible : on continue quand même */ }
-    cloudDocRef = db.collection("quincaillerie_diallo_data").doc("state");
+    metaDocRef = db.collection("quinc_meta").doc("state");
     setSyncUI("", "Connexion au serveur…");
 
-    cloudDocRef.onSnapshot(function(snap){
-      var fromCache = snap.metadata.fromCache;
-      var data = snap.data();
-      if(data && data.app){
-        // n'écrase les données locales que si la version distante est plus récente
-        var remoteUpdate = data.updatedAt || 0;
-        if(remoteUpdate >= lastLocalUpdate){
-          applyingRemote = true;
-          APP = data.app;
-          if(!APP.produits) APP.produits=[];
-          if(!APP.clients) APP.clients=[];
-          if(!APP.factures) APP.factures=[];
-          if(!APP.mouvements) APP.mouvements=[];
-          if(!APP.achats) APP.achats=[];
-          if(!APP.settings) APP.settings={};
-          APP.factures.forEach(function(f){
-            if(!f.paiements) f.paiements=[];
-            f.reste = factureReste(f);
-          });
-          lastLocalUpdate = remoteUpdate;
-          try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(APP)); }catch(e){}
-          applyingRemote = false;
-          if(isAuthenticated()) render();
-        }
-      } else if(!fromCache){
-        // aucun document distant encore : on pousse l'état local actuel comme référence initiale
+    var keys = Object.keys(COL);
+    var initialLoaded = {};
+    keys.forEach(function(k){ initialLoaded[k] = false; });
+    var metaLoaded = false;
+    var lastFromCache = false;
+
+    function afterMerge(fromCache){
+      lastFromCache = fromCache;
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(APP)); }catch(e){}
+      setSyncUI(fromCache ? "off" : "ok", fromCache ? "Hors connexion (données locales)" : "Synchronisé");
+      var allDone = metaLoaded && keys.every(function(k){ return initialLoaded[k]; });
+      if(allDone && !cloudReady){
+        cloudReady = true;
+        // 1re synchro terminée : on pousse toute donnée locale qui n'existe pas encore côté cloud
+        // (migration depuis l'ancien format à document unique, ou créations faites hors connexion
+        // avant la toute première connexion au serveur).
         pushToCloud(true);
       }
-      cloudReady = true;
-      setSyncUI(fromCache ? "off" : "ok", fromCache ? "Hors connexion (données locales)" : "Synchronisé");
+      if(cloudReady && isAuthenticated()) render();
+    }
+
+    keys.forEach(function(key){
+      db.collection(COL[key]).onSnapshot(function(snap){
+        applyingRemote = true;
+        var arr = APP[key] || (APP[key] = []);
+        snap.docChanges().forEach(function(change){
+          var data = change.doc.data();
+          data.id = change.doc.id;
+          var idx = arr.findIndex(function(x){ return x.id === data.id; });
+          if(change.type === "removed"){
+            if(idx > -1) arr.splice(idx, 1);
+            delete syncedJSON[key][data.id];
+          } else {
+            if(idx > -1) arr[idx] = data; else arr.push(data);
+            syncedJSON[key][data.id] = JSON.stringify(data);
+          }
+        });
+        if(key === "factures"){
+          APP.factures.forEach(function(f){
+            if(!f.paiements) f.paiements = [];
+            f.reste = factureReste(f);
+          });
+        }
+        applyingRemote = false;
+        initialLoaded[key] = true;
+        afterMerge(snap.metadata.fromCache);
+      }, function(err){
+        setSyncUI("err", "Erreur de synchro");
+        console.error(COL[key] + " onSnapshot error:", err);
+      });
+    });
+
+    metaDocRef.onSnapshot(function(snap){
+      var data = snap.data();
+      if(data){
+        applyingRemote = true;
+        if(data.shop) APP.shop = data.shop;
+        if(data.settings) APP.settings = data.settings;
+        if(data.nextNumero) APP.nextNumero = data.nextNumero;
+        applyingRemote = false;
+      } else if(!snap.metadata.fromCache){
+        // aucune métadonnée distante encore : on pousse l'état local actuel comme référence initiale
+        pushMetaToCloud();
+      }
+      metaLoaded = true;
+      afterMerge(snap.metadata.fromCache);
     }, function(err){
       setSyncUI("err", "Erreur de synchro");
-      console.error("Firestore onSnapshot error:", err);
+      console.error("meta onSnapshot error:", err);
     });
   }catch(e){
     setSyncUI("err", "Synchro indisponible");
@@ -518,16 +565,65 @@ function initFirebaseSync(){
   }
 }
 
-function pushToCloud(immediate){
-  if(!cloudDocRef) return;
-  var doPush = function(){
-    lastLocalUpdate = Date.now();
-    setSyncUI("", "Synchronisation…");
-    cloudDocRef.set({ app: APP, updatedAt: lastLocalUpdate }).then(function(){
-      setSyncUI("ok", "Synchronisé");
+function pushMetaToCloud(){
+  if(!metaDocRef) return;
+  metaDocRef.set({
+    shop: APP.shop,
+    settings: APP.settings,
+    nextNumero: APP.nextNumero,
+    updatedAt: Date.now()
+  }).catch(function(err){ console.error("meta push error:", err); });
+}
+
+// Ne pousse que les documents réellement modifiés/ajoutés/supprimés dans une collection,
+// par lots de 450 opérations (limite Firestore : 500 opérations par batch).
+function pushCollectionDiff(key){
+  if(!db) return;
+  var colName = COL[key];
+  var arr = APP[key] || [];
+  var synced = syncedJSON[key];
+  var seen = {};
+  var ops = [];
+  arr.forEach(function(item){
+    if(!item.id) item.id = uid();
+    seen[item.id] = true;
+    var json = JSON.stringify(item);
+    if(synced[item.id] !== json) ops.push({type:"set", id:item.id, data:item, json:json});
+  });
+  Object.keys(synced).forEach(function(id){
+    if(!seen[id]) ops.push({type:"delete", id:id});
+  });
+  if(!ops.length) return;
+  var i = 0;
+  function commitChunk(){
+    var chunk = ops.slice(i, i + 450);
+    if(!chunk.length) return;
+    var batch = db.batch();
+    chunk.forEach(function(op){
+      var ref = db.collection(colName).doc(op.id);
+      if(op.type === "delete") batch.delete(ref); else batch.set(ref, op.data);
+    });
+    batch.commit().then(function(){
+      chunk.forEach(function(op){
+        if(op.type === "delete") delete synced[op.id]; else synced[op.id] = op.json;
+      });
+      i += chunk.length;
+      if(i < ops.length) commitChunk();
     }).catch(function(err){
+      console.error(colName + " sync error:", err);
       setSyncUI("off", "Hors connexion (sera synchronisé)");
     });
+  }
+  commitChunk();
+}
+
+function pushToCloud(immediate){
+  if(!db) return;
+  var doPush = function(){
+    setSyncUI("", "Synchronisation…");
+    Object.keys(COL).forEach(function(key){ pushCollectionDiff(key); });
+    pushMetaToCloud();
+    setSyncUI("ok", "Synchronisé");
   };
   if(immediate){ doPush(); return; }
   clearTimeout(cloudPushTimer);
