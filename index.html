@@ -233,7 +233,7 @@
 
   /* ---- Zone d'impression (facture) : 1 exemplaire par page A4 portrait ---- */
   #printArea{display:none;}
-  @page{ size: A4 portrait; margin: 0; } /* margin 0 : le navigateur n'imprime plus l'URL/date en haut et en bas */
+  @page{ size: A4 portrait; margin: 14mm 16mm; }
   @media print{
     html, body{background:#ffffff!important;}
     body *{visibility:hidden;}
@@ -245,7 +245,6 @@
       background:#ffffff;
       color:#12314f;
     }
-    .inv-copy, .rapport-doc{padding:14mm 16mm!important;box-sizing:border-box;}
     .noprint{display:none!important;}
   }
   .inv-copy{
